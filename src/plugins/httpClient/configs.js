@@ -9,5 +9,6 @@ export const methodsList = [
     config: {
       url: '/posts',
     },
+    requireAuth: true,
   },
 ];

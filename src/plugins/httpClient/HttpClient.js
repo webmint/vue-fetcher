@@ -10,7 +10,9 @@ export default class HttpClient {
     this.methodsList = methods;
     this.awakenRequests = observableRequests;
 
-    this.methodsList.forEach(({ name, config, setCustomLoader }) => {
+    this.methodsList.forEach(({
+      name, config, setCustomLoader, requireAuth,
+    }) => {
       if (setCustomLoader) {
         Object.defineProperty(this, `isLoading${capitalizeFirstLetter(name)}`, {
           get: () => this.awakenRequests.requests.includes(name),
@@ -18,11 +20,17 @@ export default class HttpClient {
       }
       this[name] = async () => {
         try {
+          if (requireAuth) {
+            const oktaTS = await JSON.parse(localStorage.getItem('okta-token-storage'));
+            const token = oktaTS.accessToken ? oktaTS.accessToken.accessToken : null;
+            this.client.defaults.headers.common.Authorization = `Bearer ${token}`;
+          }
           this.addToAwakenRequests(name);
           const result = await this.client.request(config);
           this.removeFromAwakenRequests(name);
           return result;
         } catch {
+          this.removeFromAwakenRequests(name);
           return new Error();
         }
       };
