@@ -1,29 +1,26 @@
 import axios from 'axios';
 import Vue from 'vue';
 import { capitalizeFirstLetter } from './helpers';
+import ConfigGenerator from './ConfigGenerator';
 
 export default class HttpClient {
-  constructor(baseConfig, methods) {
-    const observableRequests = Vue.observable({ requests: [] });
+  constructor(requests) {
+    this.client = axios.create();
+    this.awakenRequests = Vue.observable({ requests: [] });
 
-    this.client = axios.create(baseConfig);
-    this.methodsList = methods;
-    this.awakenRequests = observableRequests;
-
-    this.methodsList.forEach(({ name, config, setCustomLoader }) => {
-      if (setCustomLoader) {
-        Object.defineProperty(this, `isLoading${capitalizeFirstLetter(name)}`, {
-          get: () => this.awakenRequests.requests.includes(name),
-        });
+    requests.forEach((request) => {
+      if (request.setCustomLoader) {
+        this.setCustomLoader(request.name);
       }
-      this[name] = async () => {
+
+      this[request.name] = async (params, data) => {
         try {
-          this.addToAwakenRequests(name);
-          const result = await this.client.request(config);
-          this.removeFromAwakenRequests(name);
-          return result;
+          this.addToAwakenRequests(request.name);
+          return await this.client.request(new ConfigGenerator(request, params, data).config);
         } catch {
-          return new Error();
+          throw new Error();
+        } finally {
+          this.removeFromAwakenRequests(request.name);
         }
       };
     });
@@ -36,6 +33,12 @@ export default class HttpClient {
   removeFromAwakenRequests(name) {
     this.awakenRequests.requests = this.awakenRequests.requests
       .filter((r) => r !== name);
+  }
+
+  setCustomLoader(name) {
+    return Object.defineProperty(this, `isLoading${capitalizeFirstLetter(name)}`, {
+      get: () => this.awakenRequests.requests.includes(name),
+    });
   }
 
   get isLoading() {
