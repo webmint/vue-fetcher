@@ -1,32 +1,26 @@
 import axios from 'axios';
 import Vue from 'vue';
 import { capitalizeFirstLetter } from './helpers';
+import ConfigGenerator from './ConfigGenerator';
 
 export default class HttpClient {
-  constructor(baseConfig, methods) {
-    this.client = axios.create(baseConfig);
-    this.methodsList = methods;
+  constructor(requests) {
+    this.client = axios.create();
     this.awakenRequests = Vue.observable({ requests: [] });
 
-    this.methodsList.forEach(({
-      name, config, setCustomLoader, requireAuth,
-    }) => {
-      if (setCustomLoader) {
-        this.setCustomLoader(name);
+    requests.forEach((request) => {
+      if (request.setCustomLoader) {
+        this.setCustomLoader(request.name);
       }
 
-      this[name] = async () => {
+      this[request.name] = async (params, data) => {
         try {
-          this.addToAwakenRequests(name);
-          let methodConfig = config;
-          if (requireAuth) {
-            methodConfig = this.addAuth(config);
-          }
-          return await this.client.request(methodConfig);
+          this.addToAwakenRequests(request.name);
+          return await this.client.request(new ConfigGenerator(request, params, data).config);
         } catch {
           throw new Error();
         } finally {
-          this.removeFromAwakenRequests(name);
+          this.removeFromAwakenRequests(request.name);
         }
       };
     });
@@ -39,30 +33,6 @@ export default class HttpClient {
   removeFromAwakenRequests(name) {
     this.awakenRequests.requests = this.awakenRequests.requests
       .filter((r) => r !== name);
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  getToken() {
-    const oktaTS = JSON.parse(localStorage.getItem('okta-token-storage'));
-    return oktaTS && oktaTS.accessToken ? oktaTS.accessToken.accessToken : '';
-  }
-
-  addAuth(config) {
-    const hasHeaders = Object.prototype.hasOwnProperty.call(config, 'headers');
-    if (hasHeaders) {
-      const headers = {
-        headers: {
-          Authorization: `Bearer ${this.getToken()}`,
-          ...config.headers,
-        },
-      };
-      return Object.assign(config, { ...headers });
-    }
-    return Object.assign(config, {
-      headers: {
-        Authorization: `Bearer ${this.getToken()}`,
-      },
-    });
   }
 
   setCustomLoader(name) {
