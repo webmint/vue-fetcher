@@ -1,5 +1,9 @@
 # vue-fetcher
 
+## Description
+
+This project created to develop a better way of using axios with vue. View _src/plugins/httpClient_ for more details.
+
 ## Project setup
 ```
 npm install

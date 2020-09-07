@@ -1,12 +1,9 @@
-export const baseConfig = {
-  baseURL: 'https://jsonplaceholder.typicode.com',
-};
-
-export const methodsList = [
+export default [
   {
     name: 'getPosts',
     setCustomLoader: true,
     config: {
+      baseURL: process.env.VUE_APP_API,
       url: '/posts',
     },
     requireAuth: true,

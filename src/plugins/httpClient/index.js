@@ -1,5 +1,5 @@
 import Vue from 'vue';
-import { baseConfig, methodsList } from './configs';
+import requests from './requests';
 import httpClientPlugin from './plugin';
 
-Vue.use(httpClientPlugin, { baseConfig, methodsList });
+Vue.use(httpClientPlugin, { requests });
